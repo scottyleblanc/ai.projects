@@ -1,0 +1,320 @@
+# Economic Indicators — Mortgage Decision Aid
+
+A single-file HTML dashboard that pulls live Canadian economic data and translates it into plain-English signals to help with personal financial decisions — specifically whether to lock in a fixed mortgage rate or stay on a variable rate.
+
+No server required. Open the HTML file in any browser.
+
+---
+
+## What it does
+
+The dashboard monitors eight key economic indicators arranged in two rows — four market/price indicators across the top, four macro/rate indicators across the bottom. Each card shows a current value, day-over-day change, 30-day sparkline where applicable, and a plain-English signal.
+
+An **Overall read** panel weighs all eight signals together and gives a single paragraph recommendation. A **How to read this** panel below it explains what each signal means for your mortgage decision.
+
+There is also a weekly observation log (saved in browser localStorage) so you can note what you're seeing over time.
+
+---
+
+## Layout
+
+```
+Row 1 (market/price):  [ S&P 500 ]  [ TSX Canada ]  [ Crude Oil ]  [ CAD/USD ]
+Row 2 (macro/rate):    [ BoC Rate ] [ Inflation    ] [ GoC 5yr   ] [ GoC 10yr ]
+```
+
+---
+
+## The eight indicators
+
+### Why these eight?
+
+The goal is to filter out media noise and focus on a small number of signals that have a direct, documented relationship to Canadian mortgage rates. Each one measures the same underlying question — how confident are businesses, consumers, and investors in the future? — from a different angle.
+
+---
+
+### 1. S&P 500 (via SPY ETF)
+
+**What it is:** The S&P 500 is a broad index of 500 large US companies. SPY is the most liquid ETF that tracks it.
+
+**Why it matters for mortgages:** Equity markets are a real-time vote on economic confidence. A sustained decline (–10% or more over a month) signals that institutional investors are pricing in a recession. Recessions cause central banks to cut rates — which favours staying variable. Rising markets suggest the economy is healthy and rates may stay elevated.
+
+**What to watch for:**
+- Falling sharply (< –10% over month) → recession risk rising, rate cuts may follow, may favour variable
+- Declining moderately (–3% to –10%) → softening confidence, watch for BoC commentary
+- Rising strongly (> +5%) → rates likely to stay elevated
+
+**Data source:** Twelve Data free API (SPY quote + daily time series). Requires free API key.
+**Note:** SPY is priced in USD per share. The percentage move is what matters, not the absolute number.
+
+---
+
+### 2. TSX Canada (via EWC ETF)
+
+**What it is:** EWC (iShares MSCI Canada ETF) is a US-listed ETF that holds the same large-cap Canadian companies that make up the TSX Composite. It is priced in USD on NYSE Arca.
+
+**Why it matters for mortgages:** The TSX more directly reflects the Canadian economy than the S&P 500 — it is heavily weighted toward financials (~30%), energy (~17%), and materials (~13%), the three sectors most sensitive to Canadian rate decisions. A falling TSX signals weakening domestic confidence and increases the likelihood of a BoC rate cut.
+
+**Why EWC instead of the TSX index directly:** The S&P/TSX Composite index (GSPTSE) and TSX-listed ETFs such as XIU.TO are not available on the Twelve Data free plan — the free tier covers US-listed instruments and forex pairs only. EWC holds the same underlying companies and has a correlation of >0.95 with the TSX Composite, making it a reliable directional proxy. The only difference is that it is priced in USD.
+
+**What to watch for:**
+- Falling sharply (< –10% over month) → Canadian recession signals, rate cuts may follow
+- Declining moderately (–3% to –10%) → softening Canadian confidence, watch for BoC response
+- Rising strongly (> +5%) → strong Canadian confidence, rates likely to stay elevated
+
+**Data source:** Twelve Data free API (EWC quote + daily time series). Requires free API key.
+
+---
+
+### 3. Crude Oil (via USO ETF)
+
+**What it is:** USO (United States Oil Fund) is an ETF that tracks WTI crude oil prices. WTI (West Texas Intermediate) is the primary North American oil benchmark, priced in USD.
+
+**Why it matters for mortgages:** Oil is both an input cost and a leading inflation indicator. When oil prices spike, inflation rises across the economy. When inflation rises, the BoC is less likely to cut rates — or may raise them. As a Canadian, oil prices also directly affect the CAD and government revenues, making them especially relevant to the BoC's decision-making.
+
+**Why USO instead of WTI/USD directly:** Twelve Data's free tier provides the WTI/USD current quote but locks the historical time series behind a paid plan. USO tracks WTI closely and is available in full on the free tier. The directional signal is the same.
+
+**What to watch for:**
+- Spiking (> +15% over month) → inflation pressure building, BoC less likely to cut
+- Rising moderately (+5% to +15%) → watch for BoC commentary
+- Falling sharply (< –10%) → reduced inflation pressure, supports potential rate cuts
+
+**Data source:** Twelve Data free API (USO quote + daily time series). Requires free API key.
+
+---
+
+### 4. CAD/USD Exchange Rate
+
+**What it is:** How many US dollars one Canadian dollar buys.
+
+**Why it matters for mortgages:** A weakening CAD signals that foreign capital is leaving Canada — often a sign of economic stress or declining confidence in the Canadian economy. A sharp drop in the CAD can put upward pressure on interest rates, as the BoC may need to respond to the underlying economic weakness driving the decline. A strengthening CAD suggests foreign investors are confident in Canada's economic outlook.
+
+**What to watch for:**
+- CAD weakening (< –3% over month) → economic stress signal, watch for BoC response
+- CAD stable → no significant stress signal
+
+**Data source:** Twelve Data free API (CAD/USD forex quote + daily time series). Requires free API key.
+
+---
+
+### 5. Bank of Canada Overnight Rate
+
+**What it is:** The rate at which major banks lend money to each other overnight. The BoC adjusts this on eight fixed dates per year.
+
+**Why it matters for mortgages:** Variable mortgage rates are priced directly off this rate. When the BoC raises it, your variable payment goes up almost immediately. When it cuts, your payment drops.
+
+The card also displays the **next scheduled BoC announcement date** and how many days away it is. The 2026 schedule is hardcoded from the BoC's published annual calendar (Jan 28, Mar 18, Apr 29, Jun 10, Jul 15, Sep 9, Oct 28, Dec 9).
+
+**What to watch for:**
+- Rising → strong case to lock in fixed immediately
+- Falling → stay variable and ride the cuts down
+- Held → no immediate change, watch the other indicators for direction
+
+**Data source:** Bank of Canada Valet API (`V39079`). No key required — CORS-enabled.
+**Update frequency:** 8 times per year on fixed announcement dates. The date shown is the last decision date, which may be weeks ago — this is correct, not stale.
+
+---
+
+### 6. Inflation — CPI
+
+**What it is:** Statistics Canada's All-items Consumer Price Index for Canada, published monthly. The card shows year-over-year percentage change (the headline number the BoC targets) and month-over-month change, with a 12-month sparkline of index levels.
+
+**Why it matters for mortgages:** The BoC's inflation target is 2% year-over-year. When CPI is well above 2%, the BoC is unlikely to cut and may raise rates — which favours locking in fixed. When CPI is falling toward or below 2%, the BoC has room to cut — which may favour staying variable.
+
+**What to watch for:**
+- CPI > 3% YoY → well above target, BoC unlikely to cut, may raise — consider locking
+- CPI 2.5–3% YoY → above target, limits BoC room to cut
+- CPI 1.5–2% YoY → near or at target, BoC has flexibility
+- CPI < 1.5% YoY → below target, supports further rate cuts
+
+**Data source:** Statistics Canada Web Data Service (WDS) API, vector `v41690973` (All-items CPI, not seasonally adjusted, table 18-10-0004-01). No key required — CORS-enabled.
+**Update frequency:** Monthly, released approximately the third week of the following month.
+
+---
+
+### 7. GoC 5-Year Bond Yield
+
+**What it is:** The yield (effective interest rate) on a 5-year Government of Canada bond.
+
+**Why it matters for mortgages:** Fixed mortgage rates in Canada are priced off the 5-year GoC bond yield, plus a spread of roughly 1–2% set by lenders. When the 5-year yield rises, fixed mortgage rates follow within weeks. This gives you advance warning before your bank changes its posted rates.
+
+**What to watch for:**
+- Rising strongly (> +0.30% over month) → fixed rates about to rise, lock soon
+- Rising moderately (+0.10% to +0.30%) → fixed rates may rise, watch
+- Falling moderately (–0.10% to –0.30%) → fixed rates may ease
+- Falling strongly (< –0.30% over month) → fixed rates improving, no rush to lock
+
+**Data source:** Bank of Canada Valet API (`BD.CDN.5YR.DQ.YLD`). No key required.
+**Update frequency:** Each business day. On weekends, the date shown will be the most recent Friday — this is correct.
+
+---
+
+### 8. GoC 10-Year Bond Yield
+
+**What it is:** The yield on a 10-year Government of Canada bond. This card also shows the **10yr–5yr spread** — the difference between the two yields.
+
+**Why it matters for mortgages:** The 10-year yield reflects long-term growth and inflation expectations. More importantly, the spread between the 10-year and 5-year yields is a leading economic indicator:
+
+- **Positive spread (normal):** 10yr > 5yr — investors expect the economy to grow.
+- **Negative spread (inverted):** 10yr < 5yr — investors expect economic trouble ahead, pricing in future rate cuts. An inverted yield curve has historically preceded every major Canadian and US recession.
+
+**What to watch for:**
+- Inverted spread (10yr < 5yr) → recession signal, BoC rate cuts likely ahead, may favour variable
+- 10yr rising sharply → long-term inflation expectations building
+- 10yr falling sharply → long-term confidence weakening, easing pressure ahead
+
+**Data source:** Bank of Canada Valet API (`BD.CDN.10YR.DQ.YLD`). No key required.
+**Update frequency:** Each business day. If either bond yield date is more than 5 calendar days old, the dashboard flags it with a warning.
+
+---
+
+## Reading the signals together
+
+The dashboard is most useful when multiple indicators point in the same direction. One signal alone is noise; three pointing the same way is meaningful.
+
+| Scenario | What to consider |
+|---|---|
+| BoC rate rising + 5yr bond rising | Strong case to lock in fixed immediately |
+| BoC rate falling + equities declining | Rate cuts likely ahead, staying variable may save money |
+| CPI above 3% + oil spiking | Inflation pressure on two fronts — BoC unlikely to cut |
+| CPI falling + yield curve inverted | Disinflation + recession signal — rate cuts likely ahead |
+| Oil spiking + CAD weakening | Inflationary pressure + economic stress — complex, watch closely |
+| All signals neutral | Use this as time to assess your personal risk tolerance, not a trigger to act |
+
+**Important:** These signals inform context. Your mortgage decision also depends on personal factors — how much payment variability you can absorb, how long you plan to stay in the home, and the spread between current fixed and variable rates at your lender. A mortgage broker can help weigh those personal factors alongside the economic environment.
+
+---
+
+## Signal quick reference
+
+```
+BoC rate RISING          → Variable payments up immediately. Lock in fixed urgently.
+BoC rate FALLING         → Variable payments falling. Stay variable, ride cuts down.
+5yr bond RISING          → Fixed rates will rise in weeks. Lock before they do.
+5yr bond FALLING         → Fixed rates improving. No urgency to lock.
+10yr < 5yr (inverted)    → Recession signal. Rate cuts likely. May favour variable.
+CPI above 3%             → Inflation too high. BoC unlikely to cut. Consider locking.
+CPI below 1.5%           → Inflation cooling. BoC may cut further. May favour variable.
+S&P / TSX falling hard   → Recession risk. BoC likely to cut. May favour variable.
+Oil spiking              → Inflation risk. Rates may stay higher longer.
+CAD weakening            → Economic stress signal. Watch for BoC response.
+```
+
+---
+
+## Setup and usage
+
+### Requirements
+
+- Any modern browser (Chrome, Firefox, Safari, Edge)
+- A free Twelve Data API key (for S&P 500, TSX/EWC, crude oil, CAD/USD)
+- No server, no hosting, no installation
+
+### Getting your Twelve Data API key
+
+1. Go to [twelvedata.com/register](https://twelvedata.com/register)
+2. Create a free account — no credit card required
+3. Copy your API key from the dashboard
+
+**Free tier limits:** 800 API calls per day, 8 calls per minute. The dashboard uses 8 calls per refresh (quote + time series × 4 symbols). At weekly use, you will never approach the daily limit.
+
+### First-time setup
+
+1. Download `economy-dashboard.html`
+2. Open it in any browser — the API key prompt appears automatically
+3. Paste your Twelve Data key and click "Save & load data"
+4. The key is saved in your browser's localStorage — you only do this once per browser
+
+### Updating your key
+
+Click the **⚙ API key** button in the top-right header at any time.
+
+### Refresh behaviour
+
+After each refresh, a 90-second cooldown timer appears. This prevents accidentally burning through the per-minute rate limit by rapid refreshing.
+
+The four government API calls (BoC rate, GoC bond yields, Statistics Canada CPI) all fire in parallel at the start — they have no Twelve Data quota and load immediately. The four Twelve Data symbols (SPY, EWC, USO, CAD/USD) are then sequenced with 8-second gaps between each pair, keeping the burst rate within the 8 calls/minute free tier ceiling.
+
+A full refresh takes approximately 32 seconds.
+
+---
+
+## Data sources
+
+| Indicator | Source | API | Symbol / Vector | Key required |
+|---|---|---|---|---|
+| BoC Overnight Rate | Bank of Canada | Valet API | `V39079` | No |
+| GoC 5yr Bond Yield | Bank of Canada | Valet API | `BD.CDN.5YR.DQ.YLD` | No |
+| GoC 10yr Bond Yield | Bank of Canada | Valet API | `BD.CDN.10YR.DQ.YLD` | No |
+| Inflation (CPI) | Statistics Canada | WDS API | `v41690973` | No |
+| S&P 500 | Twelve Data | SPY ETF | quote + time series | Yes (free) |
+| TSX Canada | Twelve Data | EWC ETF | quote + time series | Yes (free) |
+| Crude Oil | Twelve Data | USO ETF | quote + time series | Yes (free) |
+| CAD/USD | Twelve Data | CAD/USD forex | quote + time series | Yes (free) |
+
+**Bank of Canada Valet API:** [bankofcanada.ca/valet/docs](https://www.bankofcanada.ca/valet/docs) — free, no registration, CORS-enabled.
+
+**Statistics Canada WDS API:** [statcan.gc.ca/en/developers/wds](https://www.statcan.gc.ca/en/developers/wds) — free, no registration, CORS-enabled.
+
+**Twelve Data:** [twelvedata.com](https://twelvedata.com) — free tier, registration required, 99.95% uptime SLA. Upgrade to Grow ($29/month) to remove daily call limits — no code changes required.
+
+---
+
+## Technical notes
+
+### Architecture
+
+The dashboard is a single self-contained HTML file with no external dependencies beyond Google Fonts and the two APIs. All state is held in memory during the session. Notes are persisted to browser localStorage (up to 24 entries, most recent 6 displayed).
+
+### Why not AWS / hosted infrastructure?
+
+This was a deliberate design decision. The use case is a personal dashboard checked weekly. The data is all public. There is no need for a backend server, scheduled jobs, or auto-scaling. If you ever want historical snapshots stored over time to enable multi-month trend lines, a single AWS Lambda + DynamoDB free tier setup would be the natural next step.
+
+### Why ETFs instead of direct index or commodity data?
+
+Twelve Data's free plan covers US-listed stocks, ETFs, and forex pairs. Index symbols (GSPTSE, WTI/USD) and non-US-listed securities (XIU.TO) return 404 on the free tier. The ETF proxies used are:
+
+| Target | Proxy ETF | Rationale |
+|---|---|---|
+| S&P 500 index | SPY | Direct tracker, most liquid US ETF |
+| TSX Composite | EWC | US-listed, holds same Canadian large-caps, correlation >0.95 |
+| WTI Crude Oil | USO | Tracks WTI closely, free-tier accessible |
+
+### Rate limit handling
+
+The dashboard detects all Twelve Data error codes:
+- `401 / 403` → prompts to re-enter the API key
+- `429` → shows "Rate limited — wait ~60 seconds then refresh" in amber on affected cards
+- Other errors → shows "Could not load — refresh to retry" in grey
+
+### Why do the BoC and CPI dates look old?
+
+**Overnight rate** (`Last decision: YYYY-MM-DD`): The BoC only changes or confirms rates on 8 fixed dates per year. The date shown is the last decision date. If the rate was last changed in March and it is now May, the date will be from March. This is correct.
+
+**Bond yields** (`Latest business day: YYYY-MM-DD`): Published each business day. On weekends the date will be Friday; on public holidays, the previous trading day. Dates more than 5 calendar days old trigger a warning flag on the card.
+
+**CPI** (`YYYY-MM`): Published monthly, approximately three weeks after the reference month ends. The date shown is the reference month, not the release date — it will always appear to lag by 4–6 weeks. This is correct.
+
+---
+
+## Files in this project
+
+| File | Description |
+|---|---|
+| `economy-dashboard.html` | The complete dashboard — open this in a browser |
+| `README.md` | This file |
+
+---
+
+## Potential future improvements
+
+- **Historical snapshots:** Store weekly indicator values to enable 3-month or 6-month trend charts. Would require a small backend (AWS Lambda + DynamoDB, or a Supabase free tier table).
+- **Push notifications:** A serverless function could email or text when a threshold is crossed (e.g., 5yr bond yield rises more than 0.5% in a week).
+- **Mortgage rate feed:** Pull actual posted 5-year fixed rates from a Canadian mortgage aggregator to show the current rate environment directly alongside the bond yield that drives it.
+- **Upgrade to paid Twelve Data:** Unlocks GSPTSE and WTI/USD directly, removing the need for ETF proxies.
+
+---
+
+## Disclaimer
+
+This dashboard is an informational tool for personal use. It is not financial advice. Mortgage decisions depend on personal circumstances that no dashboard can capture — payment tolerance, term length, lender spreads, and personal risk tolerance. Consult a mortgage broker or financial advisor before making rate decisions.
