@@ -239,6 +239,39 @@ A full refresh takes approximately 32 seconds.
 
 ---
 
+## Hosting on Cloudflare Pages (optional — access from any device)
+
+The dashboard can be hosted as a static site for free on Cloudflare Pages, making it accessible from any device at a permanent URL with no server to maintain.
+
+**First-time deployment:**
+
+1. Go to [pages.cloudflare.com](https://pages.cloudflare.com) and create a free account
+2. Click **Create a project → Direct Upload**
+3. Name your project (e.g. `economy-dashboard`) — this becomes part of your URL
+4. Rename `economy-dashboard.html` to `index.html`
+5. Put `index.html` into a zip file
+6. Drag the zip onto the Cloudflare upload area and click **Deploy**
+7. Your dashboard is live at `https://economy-dashboard.pages.dev`
+
+The file must be named `index.html` — Cloudflare won't serve a non-index file at the root URL automatically. The zip wrapper is required by Cloudflare's direct upload for site deployments.
+
+**Updating after changes:**
+
+1. Download the updated `economy-dashboard.html`
+2. Rename it to `index.html`
+3. Zip it
+4. Go to your Cloudflare Pages project → **Deployments → Upload** and upload the new zip
+
+The URL stays the same across all devices. Takes about two minutes.
+
+**API key across devices:**
+
+Each new browser or device will prompt for your Twelve Data API key on first load. Paste it once and it is saved in that browser's localStorage — you won't be asked again on that device. This is intentional: the key is never embedded in the file itself, so it is safe to host the dashboard at a public URL.
+
+**Note on GitHub OAuth:** If Cloudflare prompts you to connect GitHub, click **Direct Upload** instead — you do not need a GitHub connection. If you do connect GitHub, select **Only select repositories** on the OAuth screen to limit access to a single repo rather than your entire account.
+
+---
+
 ## Data sources
 
 | Indicator | Source | API | Symbol / Vector | Key required |
