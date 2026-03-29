@@ -124,6 +124,15 @@
   .howto-item { font-size: 11px; line-height: 1.6; color: var(--muted2); }
   .howto-item strong { display: block; color: var(--accent); font-weight: 500; margin-bottom: 2px; }
 
+  .datadict { max-width: 1280px; margin: 14px auto 0; background: var(--surface); border: 1px solid var(--bdr); padding: 20px; }
+  .datadict > label { display: block; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
+  .datadict table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .datadict th { text-align: left; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: 0 12px 8px 0; font-weight: 400; white-space: nowrap; }
+  .datadict td { color: var(--muted2); padding: 7px 12px 7px 0; border-top: 1px solid var(--bdr); line-height: 1.5; vertical-align: top; }
+  .datadict td:first-child { color: var(--accent); white-space: nowrap; }
+  .datadict .spark-green { color: var(--green); }
+  .datadict .spark-red   { color: var(--red); }
+
   .skel { background: linear-gradient(90deg, var(--surf2) 25%, var(--surface) 50%, var(--surf2) 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; height: 36px; width: 90px; border-radius: 2px; display: inline-block; }
   @keyframes shimmer { to { background-position: -200% 0; } }
 </style>
@@ -275,6 +284,80 @@
     <div class="howto-item"><strong>CAD weakening</strong>Economic stress signal. Watch for BoC response.</div>
   </div>
 </div>
+
+<div class="datadict">
+  <label>Data &amp; sparkline reference</label>
+  <table>
+    <thead>
+      <tr>
+        <th>Card</th>
+        <th>Value shown</th>
+        <th>Sparkline plots</th>
+        <th>Green</th>
+        <th>Red</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>S&amp;P 500</td>
+        <td>SPY ETF closing price (USD). % change is vs previous close.</td>
+        <td>Daily closing price over 30 trading days.</td>
+        <td class="spark-green">Price higher than 30 days ago</td>
+        <td class="spark-red">Price lower than 30 days ago</td>
+      </tr>
+      <tr>
+        <td>TSX Canada</td>
+        <td>EWC ETF closing price (USD) — US-listed proxy for Canadian large-caps. % change is vs previous close.</td>
+        <td>Daily closing price over 30 trading days.</td>
+        <td class="spark-green">Price higher than 30 days ago</td>
+        <td class="spark-red">Price lower than 30 days ago</td>
+      </tr>
+      <tr>
+        <td>Crude Oil</td>
+        <td>USO ETF closing price (USD) — proxy for WTI crude. % change is vs previous close.</td>
+        <td>Daily closing price over 30 trading days.</td>
+        <td class="spark-green">Price higher than 30 days ago</td>
+        <td class="spark-red">Price lower than 30 days ago</td>
+      </tr>
+      <tr>
+        <td>CAD / USD</td>
+        <td>CAD/USD forex rate — how many USD one Canadian dollar buys. % change is vs previous close.</td>
+        <td>Daily rate over 30 trading days.</td>
+        <td class="spark-green">CAD stronger than 30 days ago</td>
+        <td class="spark-red">CAD weaker than 30 days ago</td>
+      </tr>
+      <tr>
+        <td>BoC Rate</td>
+        <td>Bank of Canada target overnight rate (%). Change shown is vs previous decision.</td>
+        <td>No sparkline — rate changes only 8 times per year.</td>
+        <td>—</td>
+        <td>—</td>
+      </tr>
+      <tr>
+        <td>Inflation (CPI)</td>
+        <td>All-items CPI year-over-year % change (Statistics Canada, monthly). Month-over-month % change also shown.</td>
+        <td>YoY inflation rate (%) over the last 13 months. Plots the pace of inflation, not the raw index level.</td>
+        <td class="spark-green">YoY rate lower than 13 months ago (inflation cooling)</td>
+        <td class="spark-red">YoY rate higher than 13 months ago (inflation rising)</td>
+      </tr>
+      <tr>
+        <td>GoC 5yr Yield</td>
+        <td>Government of Canada 5-year bond yield (%). Change shown is vs previous business day.</td>
+        <td>Daily yield over last 30 business days.</td>
+        <td class="spark-green">Yield lower than 30 days ago (fixed rates easing)</td>
+        <td class="spark-red">Yield higher than 30 days ago (fixed rates rising)</td>
+      </tr>
+      <tr>
+        <td>GoC 10yr Yield</td>
+        <td>Government of Canada 10-year bond yield (%), with 10yr–5yr spread. Change shown is vs previous business day.</td>
+        <td>Daily yield over last 30 business days.</td>
+        <td class="spark-green">Yield lower than 30 days ago</td>
+        <td class="spark-red">Yield higher than 30 days ago</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
 <div class="notes">
   <label>Weekly observation log</label>
   <textarea id="note-input" placeholder="Note what you're seeing this week — e.g. 'BoC held, bond yield rising, CPI cooling. Watching fixed rates.'"></textarea>
@@ -522,27 +605,39 @@
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify([{ vectorId: 41690973, latestN: 14 }])
+          body: JSON.stringify([{ vectorId: 41690973, latestN: 25 }])
         }
       );
       const json = await r.json();
-      const obs  = json[0].object.vectorDataPoint; // newest-first array
-      // obs[0] = most recent month, obs[12] = same month last year, obs[1] = previous month
+      // Sort observations newest-first by refPer — API order is not guaranteed
+      const obs  = json[0].object.vectorDataPoint
+                     .slice()
+                     .sort((a, b) => b.refPer.localeCompare(a.refPer));
+      // obs[0] = most recent month, obs[1] = previous month, obs[12] = same month last year
       const cur     = parseFloat(obs[0].value);
       const prevMo  = parseFloat(obs[1].value);   // previous month
       const prevYr  = parseFloat(obs[12].value);  // same month 1 year ago
-      const refDate = obs[0].refPer;               // "YYYY-MM"
+      const refDate = (obs[0].refPer || '').slice(0, 7); // trim to YYYY-MM (API returns YYYY-MM-01)
 
       const yoy = ((cur - prevYr) / prevYr) * 100;
       const mom = ((cur - prevMo) / prevMo) * 100;
 
-      // Sparkline: last 12 months of index values, reversed to oldest→newest
-      const hist12 = obs.slice(0, 12).map(o => parseFloat(o.value)).reverse();
+      // Sparkline: 12-month YoY rate for each of the last 13 months, oldest→newest.
+      // Requires 25 periods of index data (each YoY needs the value 12 months prior).
+      // A falling line = inflation rate cooling = good for variable rate holders.
+      const yoyHist = [];
+      for (let i = 12; i >= 0; i--) {
+        const val  = parseFloat(obs[i].value);
+        const yr   = parseFloat(obs[i + 12].value);
+        yoyHist.push(((val - yr) / yr) * 100);
+      }
+      const yoyFirst = yoyHist[0], yoyLast = yoyHist[yoyHist.length - 1];
 
       sv('val-cpi-yoy', `${ff(yoy, 1)}<span class="unit">% YoY</span>`);
       sv('val-cpi-mom', `${ff(mom, 2)}<span class="unit">% MoM</span>`);
       setDot('cpi', yoy > 2.5 ? 'up' : yoy < 1.5 ? 'down' : 'flat');
-      drawSpark('spark-cpi', hist12, yoy > 2 ? '#f87171' : '#4ade80');
+      // Green = YoY rate falling (inflation cooling); red = YoY rate rising
+      drawSpark('spark-cpi', yoyHist, yoyLast <= yoyFirst ? '#4ade80' : '#f87171');
       st('meta-cpi', `All-items CPI · ${refDate} · Source: Statistics Canada`);
 
       let sig, cls;

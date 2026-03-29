@@ -117,7 +117,9 @@ The card also displays the **next scheduled BoC announcement date** and how many
 
 ### 6. Inflation — CPI
 
-**What it is:** Statistics Canada's All-items Consumer Price Index for Canada, published monthly. The card shows year-over-year percentage change (the headline number the BoC targets) and month-over-month change, with a 12-month sparkline of index levels.
+**What it is:** Statistics Canada's All-items Consumer Price Index for Canada, published monthly. The card shows year-over-year percentage change (the headline number the BoC targets) and month-over-month change.
+
+The sparkline plots the **year-over-year inflation rate** (not the raw index level) over the last 13 months. This shows whether the pace of inflation is rising or falling — which is what the BoC responds to. A raw CPI index level rises almost every month regardless of whether inflation is cooling, so it would be misleading as a sparkline. Green = inflation rate falling; red = inflation rate rising.
 
 **Why it matters for mortgages:** The BoC's inflation target is 2% year-over-year. When CPI is well above 2%, the BoC is unlikely to cut and may raise rates — which favours locking in fixed. When CPI is falling toward or below 2%, the BoC has room to cut — which may favour staying variable.
 
@@ -319,6 +321,23 @@ The dashboard detects all Twelve Data error codes:
 - `401 / 403` → prompts to re-enter the API key
 - `429` → shows "Rate limited — wait ~60 seconds then refresh" in amber on affected cards
 - Other errors → shows "Could not load — refresh to retry" in grey
+
+### Sparkline reference
+
+Each card's sparkline uses a consistent approach: it plots the raw value (price, yield, or rate) over time, and the line color reflects whether that value is higher or lower at the right edge than at the left edge. Green means the trend is favourable for variable-rate holders; red means it is unfavourable.
+
+The one exception is **Inflation (CPI)**, where the sparkline plots the year-over-year inflation rate rather than the raw index level. This is intentional — the CPI index level rises almost every month regardless of whether inflation is cooling, which would make the sparkline permanently red and therefore meaningless. Plotting the YoY rate instead shows the direction that actually matters for BoC decisions.
+
+| Card | Sparkline plots | Green means | Red means |
+|---|---|---|---|
+| S&P 500 | Daily SPY closing price, 30 trading days | Price up vs 30 days ago | Price down vs 30 days ago |
+| TSX Canada | Daily EWC closing price, 30 trading days | Price up vs 30 days ago | Price down vs 30 days ago |
+| Crude Oil | Daily USO closing price, 30 trading days | Price up vs 30 days ago | Price down vs 30 days ago |
+| CAD/USD | Daily CAD/USD rate, 30 trading days | CAD stronger vs 30 days ago | CAD weaker vs 30 days ago |
+| BoC Rate | No sparkline | — | — |
+| Inflation (CPI) | YoY inflation rate (%), 13 months | Inflation rate falling | Inflation rate rising |
+| GoC 5yr Yield | Daily yield, 30 business days | Yield lower (fixed rates easing) | Yield higher (fixed rates rising) |
+| GoC 10yr Yield | Daily yield, 30 business days | Yield lower vs 30 days ago | Yield higher vs 30 days ago |
 
 ### Why do the BoC and CPI dates look old?
 
