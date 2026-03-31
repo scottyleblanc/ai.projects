@@ -303,7 +303,17 @@ The dashboard is a single self-contained HTML file with no external dependencies
 
 ### Why not AWS / hosted infrastructure?
 
-This was a deliberate design decision. The use case is a personal dashboard checked weekly. The data is all public. There is no need for a backend server, scheduled jobs, or auto-scaling. If you ever want historical snapshots stored over time to enable multi-month trend lines, a single AWS Lambda + DynamoDB free tier setup would be the natural next step.
+The current version is a deliberate single-file design — no server, no build step, no infrastructure to maintain. For weekly personal use this is the right tradeoff.
+
+**Planned migration to AWS:** A future version will move to an AWS-backed architecture. Running data fetching server-side removes all of the browser-side constraints that currently shape the design:
+
+- API keys live on the server — no per-device key entry, no risk of keys being visible in browser storage
+- No CORS restrictions — any data source is accessible server-to-server, including Nasdaq Data Link for GoC bond yields
+- No Twelve Data rate-limit sequencing — the server fetches on a schedule, the browser gets one fast cached response
+- The 90-second cooldown timer and all API call sequencing logic can be removed from the dashboard entirely
+- The GoC bond yield feed issue (BoC Valet API benchmark transition gaps) becomes solvable — Nasdaq Data Link or another server-accessible source can be used instead
+
+The planned architecture is a Lambda function behind API Gateway that fetches and caches all 8 indicators, with the dashboard calling a single `/api/data` endpoint rather than 8 external APIs directly.
 
 ### Why ETFs instead of direct index or commodity data?
 
@@ -343,9 +353,13 @@ The one exception is **Inflation (CPI)**, where the sparkline plots the year-ove
 
 **Overnight rate** (`Last decision: YYYY-MM-DD`): The BoC only changes or confirms rates on 8 fixed dates per year. The date shown is the last decision date. If the rate was last changed in March and it is now May, the date will be from March. This is correct.
 
-**Bond yields** (`Latest business day: YYYY-MM-DD`): Published each business day. On weekends the date will be Friday; on public holidays, the previous trading day. Dates more than 5 calendar days old trigger a warning flag on the card.
+**Bond yields** (`Latest business day: YYYY-MM-DD`): Published each business day. On weekends the date will be Friday; on public holidays, the previous trading day. Dates more than 5 calendar days old trigger a warning flag reading **"BoC feed delayed — last known value"**.
+
+**Known issue — benchmark bond transitions:** The BoC periodically switches to a new benchmark bond issue. When this happens, the `BD.CDN.5YR.DQ.YLD` and `BD.CDN.10YR.DQ.YLD` series in the Valet API can stop publishing new values for several weeks until the new issue begins being recorded under the same series name. During this period the dashboard displays the last known values with the stale warning. The data is still directionally useful as a reference point. The feed typically recovers on its own within 4–6 weeks of a benchmark transition — no dashboard changes are required when it does.
 
 **CPI** (`YYYY-MM`): Published monthly, approximately three weeks after the reference month ends. The date shown is the reference month, not the release date — it will always appear to lag by 4–6 weeks. This is correct.
+
+The Statistics Canada WDS API does not guarantee the sort order of observations in its response. The dashboard explicitly sorts all returned observations by `refPer` (reference period) descending before indexing, so `obs[0]` is always the most recent month regardless of API response order. 25 periods are requested (rather than 14) to ensure enough data points are available to compute 13 months of year-over-year rates for the sparkline.
 
 ---
 
@@ -358,11 +372,18 @@ The one exception is **Inflation (CPI)**, where the sparkline plots the year-ove
 
 ---
 
-## Potential future improvements
+## Planned and potential improvements
 
-- **Historical snapshots:** Store weekly indicator values to enable 3-month or 6-month trend charts. Would require a small backend (AWS Lambda + DynamoDB, or a Supabase free tier table).
-- **Push notifications:** A serverless function could email or text when a threshold is crossed (e.g., 5yr bond yield rises more than 0.5% in a week).
-- **Mortgage rate feed:** Pull actual posted 5-year fixed rates from a Canadian mortgage aggregator to show the current rate environment directly alongside the bond yield that drives it.
+### In progress
+
+- **AWS migration:** Move data fetching server-side (Lambda + API Gateway). Resolves the BoC bond yield feed issue, removes per-device API key entry, eliminates rate-limit sequencing, and enables any data source regardless of CORS policy. See the AWS architecture note in Technical notes above.
+
+### Future
+
+- **GoC bond yield alternative source:** Once server-side, switch bond yields from the BoC Valet API (subject to benchmark transition gaps) to Nasdaq Data Link or a similar reliable source.
+- **Historical snapshots:** Store weekly indicator values to enable 3-month or 6-month trend charts (AWS Lambda + DynamoDB).
+- **Push notifications:** Email or text alert when a threshold is crossed (e.g., 5yr bond yield rises more than 0.5% in a week).
+- **Mortgage rate feed:** Pull actual posted 5-year fixed rates from a Canadian mortgage aggregator to show alongside the bond yield that drives them.
 - **Upgrade to paid Twelve Data:** Unlocks GSPTSE and WTI/USD directly, removing the need for ETF proxies.
 
 ---

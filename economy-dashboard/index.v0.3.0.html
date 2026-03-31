@@ -527,7 +527,9 @@
   // Returns [b5Result, b10Result] for independent verdict weighting.
   async function loadBonds() {
     try {
-      const r   = await fetch('https://www.bankofcanada.ca/valet/observations/BD.CDN.5YR.DQ.YLD,BD.CDN.10YR.DQ.YLD/json?recent=30');
+      // Use the bond_yields_benchmark group endpoint — maintained continuously through benchmark bond transitions.
+      // Individual series (BD.CDN.5YR.DQ.YLD etc) can go silent for weeks when the BoC switches benchmark issues.
+      const r   = await fetch('https://www.bankofcanada.ca/valet/observations/group/bond_yields_benchmark/json?recent=60');
       const d   = await r.json();
       const obs = d.observations.filter(o => o['BD.CDN.5YR.DQ.YLD']?.v && o['BD.CDN.10YR.DQ.YLD']?.v);
       const h5  = obs.map(o => parseFloat(o['BD.CDN.5YR.DQ.YLD'].v));
@@ -536,7 +538,7 @@
       const c10 = h10[h10.length-1], p10 = h10[h10.length-2];
       const sprd = c10 - c5;
       const date = obs[obs.length-1].d;
-      const staleFlag = isStale(date, 5) ? '  ⚠ May be delayed' : '';
+      const staleFlag = isStale(date, 5) ? ' · ⚠ BoC feed delayed — last known value' : '';
 
       // ── 5yr card — drives fixed mortgage rates
       sv('val-b5', `${ff(c5)}<span class="unit">%</span>`);
